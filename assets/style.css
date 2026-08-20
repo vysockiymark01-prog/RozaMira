@@ -9,10 +9,11 @@
  --shadow:0 2px 18px rgba(0,0,0,.4);
 }
 *{box-sizing:border-box}
-html{scroll-behavior:smooth}
+html{scroll-behavior:smooth;overscroll-behavior-y:none}
 body{margin:0;background:var(--bg);color:var(--ink);
  font-family:Georgia,"Times New Roman",serif;font-size:var(--fs);line-height:1.7;
- -webkit-font-smoothing:antialiased;transition:background .3s,color .3s}
+ -webkit-font-smoothing:antialiased;transition:background .3s,color .3s;
+ overscroll-behavior-y:none}
 a{color:var(--accent);text-decoration:none}
 a:hover{text-decoration:underline}
 .skip{position:absolute;left:-999px;top:0;background:var(--accent);color:#fff;padding:8px 14px;z-index:100}
