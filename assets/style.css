@@ -177,17 +177,18 @@ a:hover{text-decoration:underline}
  background:var(--card);border:1px solid var(--line);color:var(--muted);
  font-size:.95rem;line-height:1;pointer-events:none;box-shadow:0 2px 6px rgba(0,0,0,.12)}
 
-/* увеличенный просмотр схемы (тап/клик по диаграмме) — свой контейнер со
-   скроллом, БЕЗ нативного pinch-zoom страницы, чтобы фон не «просвечивал»
-   и не листался за картинкой; повторный тап по схеме — приблизить/отдалить */
-html.diagram-lightbox-open,html.diagram-lightbox-open body{overflow:hidden}
-.diagram-lightbox{position:fixed;inset:0;z-index:200;background:rgba(10,8,6,.9);
- overflow:auto;padding:26px 16px;text-align:center;touch-action:pan-x pan-y;
- -webkit-overflow-scrolling:touch;overscroll-behavior:contain}
-.diagram-lightbox::before{content:"";display:inline-block;height:100%;vertical-align:middle}
-.diagram-lightbox svg{display:inline-block;vertical-align:middle;width:100%;max-width:900px;height:auto;
- background:var(--paper);border-radius:12px;padding:16px;box-sizing:border-box;cursor:zoom-in}
-.diagram-lightbox svg.is-zoomed{width:1500px;max-width:none;cursor:zoom-out}
+/* увеличенный просмотр схемы (тап/клик по диаграмме) — щипок/двойной тап
+   масштабируют картинку через свой JS (transform), а не страницу целиком:
+   фон не «просвечивает» и не листается, а touch-action:none не даёт
+   браузеру перехватить жест под «потянуть вниз — обновить страницу» */
+html.diagram-lightbox-open,html.diagram-lightbox-open body{overflow:hidden;overscroll-behavior:none}
+.diagram-lightbox{position:fixed;inset:0;z-index:200;background:rgba(10,8,6,.92);
+ display:flex;align-items:center;justify-content:center;overflow:hidden;
+ touch-action:none;overscroll-behavior:none}
+.diagram-lightbox-stage{width:100%;max-width:900px;max-height:100%;padding:26px 16px;
+ box-sizing:border-box;display:flex;align-items:center;justify-content:center}
+.diagram-lightbox-stage svg{width:100%;height:auto;max-height:100%;background:var(--paper);
+ border-radius:12px;padding:16px;box-sizing:border-box;cursor:zoom-in;touch-action:none}
 .diagram-lightbox-close{position:fixed;top:14px;right:14px;z-index:201;width:42px;height:42px;
  border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.4);color:#fff;
  font-size:1.3rem;line-height:1;cursor:pointer}
@@ -196,7 +197,7 @@ html.diagram-lightbox-open,html.diagram-lightbox-open body{overflow:hidden}
  font-family:system-ui,Arial,sans-serif;font-size:.78rem;color:rgba(255,255,255,.75);
  background:rgba(0,0,0,.4);padding:5px 12px;border-radius:20px;pointer-events:none;
  max-width:88vw;box-sizing:border-box;text-align:center}
-@media(max-width:640px){.diagram-lightbox svg{padding:10px}}
+@media(max-width:640px){.diagram-lightbox-stage{padding:16px 10px}.diagram-lightbox-stage svg{padding:10px}}
 
 .map-banner{font-family:system-ui,Arial,sans-serif;font-size:.92rem;background:var(--card);
  border:1px dashed var(--accent-soft);border-radius:10px;padding:10px 14px;margin-top:14px}

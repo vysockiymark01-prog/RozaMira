@@ -177,11 +177,12 @@
   }catch(e){}
 })();
 
-/* ===== v6: увеличение схем по тапу (полноэкранный просмотр) =====
-   Фон блокируется от прокрутки/pinch-zoom страницы (иначе на телефоне
-   зум страницы «сдвигает» и показывает то, что находится под окном
-   просмотра). Увеличение — собственное, тапом по схеме, со скроллом
-   внутри самого окна просмотра. */
+/* ===== v6: увеличение схем (полноэкранный просмотр со своим pinch-zoom) =====
+   Все жесты (щипок, перетаскивание) обрабатываются вручную через Pointer
+   Events и CSS transform на самой схеме — никакого нативного зума/скролла
+   страницы: фон не «просвечивает» и не листается, а потянуть вниз для
+   обновления страницы браузер не может, т.к. touch-action:none и на
+   телефоне слушатели используют {passive:false}. */
 (function(){
   var overlay=null, closeBtn=null, hint=null, scrollY=0;
   function lockPage(){
@@ -199,6 +200,9 @@
     document.body.style.left='';
     document.body.style.right='';
     window.scrollTo(0,scrollY);
+    // подстраховка: на некоторых устройствах положение «съезжает» на кадр
+    // позже (пересчёт липкой шапки/фокуса) — досчитываем ещё раз следом
+    requestAnimationFrame(function(){ window.scrollTo(0,scrollY); });
   }
   function close(){
     if(!overlay) return;
@@ -208,22 +212,119 @@
     unlockPage();
   }
   function onKey(e){ if(e.key==='Escape') close(); }
-  function open(svg){
-    var clone=svg.cloneNode(true);
-    clone.addEventListener('click',function(e){
-      e.stopPropagation();
-      clone.classList.toggle('is-zoomed');
+
+  // pinch-zoom + перетаскивание одним/двумя пальцами внутри своего контейнера
+  function makeZoomable(stage,img){
+    var MAX=4, scale=1, tx=0, ty=0;
+    var pointers=new Map();
+    var pinchStartDist=0, pinchStartScale=1, panStart=null;
+    var downInfo=null; // кандидат на «тап» — только если жест не превратился в щипок/перетаскивание
+    var lastTapTime=0, lastTapPt=null;
+
+    function apply(){ img.style.transform='translate('+tx+'px,'+ty+'px) scale('+scale+')'; }
+    function clampPan(){
+      var r=stage.getBoundingClientRect(), ir=img.getBoundingClientRect();
+      // ir уже включает текущий transform; считаем допустимый вылет за края контейнера
+      var overX=Math.max(0,(ir.width-r.width)/2), overY=Math.max(0,(ir.height-r.height)/2);
+      tx=Math.min(overX,Math.max(-overX,tx));
+      ty=Math.min(overY,Math.max(-overY,ty));
+    }
+    function setScale(ns,cx,cy){
+      ns=Math.min(MAX,Math.max(1,ns));
+      var r=stage.getBoundingClientRect();
+      var px=(cx-r.left-r.width/2-tx)/scale, py=(cy-r.top-r.height/2-ty)/scale;
+      tx-=px*(ns-scale); ty-=py*(ns-scale);
+      scale=ns;
+      if(scale===1){ tx=0; ty=0; }
+      clampPan(); apply();
+    }
+    function dist(a,b){ return Math.hypot(a.x-b.x,a.y-b.y); }
+    function mid(a,b){ return {x:(a.x+b.x)/2,y:(a.y+b.y)/2}; }
+    function registerTap(x,y){
+      var now=Date.now();
+      if(lastTapPt && now-lastTapTime<320 && dist(lastTapPt,{x:x,y:y})<24){
+        setScale(scale>1?1:2.4,x,y);
+        lastTapTime=0; lastTapPt=null;
+      } else { lastTapTime=now; lastTapPt={x:x,y:y}; }
+    }
+
+    stage.style.touchAction='none';
+    stage.addEventListener('pointerdown',function(e){
+      try{ stage.setPointerCapture(e.pointerId); }catch(err){}
+      pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+      if(pointers.size===2){
+        var pts=Array.from(pointers.values());
+        pinchStartDist=dist(pts[0],pts[1])||1;
+        pinchStartScale=scale;
+        panStart=null;
+        downInfo=null; // это щипок, а не тап
+      } else if(pointers.size===1){
+        panStart={x:e.clientX,y:e.clientY,tx:tx,ty:ty};
+        downInfo={x:e.clientX,y:e.clientY,t:Date.now()};
+      }
     });
+    stage.addEventListener('pointermove',function(e){
+      if(!pointers.has(e.pointerId)) return;
+      pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+      if(pointers.size===2){
+        var pts=Array.from(pointers.values());
+        var d=dist(pts[0],pts[1])||1, m=mid(pts[0],pts[1]);
+        setScale(pinchStartScale*(d/pinchStartDist),m.x,m.y);
+        e.preventDefault();
+      } else if(pointers.size===1 && panStart){
+        if(downInfo && dist(downInfo,{x:e.clientX,y:e.clientY})>10) downInfo=null; // сдвинули палец — уже не тап
+        if(scale>1){
+          tx=panStart.tx+(e.clientX-panStart.x);
+          ty=panStart.ty+(e.clientY-panStart.y);
+          clampPan(); apply();
+        }
+        e.preventDefault();
+      }
+    });
+    stage.addEventListener('pointerup',function(e){
+      var wasLast=pointers.size<=1;
+      pointers.delete(e.pointerId);
+      if(pointers.size<2) pinchStartDist=0;
+      if(pointers.size<1) panStart=null;
+      if(downInfo && wasLast && Date.now()-downInfo.t<300){
+        registerTap(e.clientX,e.clientY);
+      }
+      downInfo=null;
+    });
+    stage.addEventListener('pointercancel',function(e){
+      pointers.delete(e.pointerId);
+      if(pointers.size<2) pinchStartDist=0;
+      if(pointers.size<1) panStart=null;
+      downInfo=null;
+    });
+    stage.addEventListener('wheel',function(e){
+      if(!e.ctrlKey) return; // жест «щипок» на трекпаде
+      e.preventDefault();
+      setScale(scale*(1-e.deltaY*0.01),e.clientX,e.clientY);
+    },{passive:false});
+    // двойной тап/клик уже определяется через pointerdown/up выше (registerTap) —
+    // отдельный слушатель 'dblclick' не нужен и на реальном тач-устройстве может
+    // сработать ВМЕСТЕ с ним на одном и том же жесте, приближая и тут же отдаляя обратно
+  }
+
+  function open(svg){
+    var stage=document.createElement('div');
+    stage.className='diagram-lightbox-stage';
+    var clone=svg.cloneNode(true);
+    clone.style.transformOrigin='center center';
+    clone.addEventListener('click',function(e){ e.stopPropagation(); });
+    stage.appendChild(clone);
     overlay=document.createElement('div');
     overlay.className='diagram-lightbox';
-    overlay.appendChild(clone);
+    overlay.appendChild(stage);
     overlay.addEventListener('click',function(e){ if(e.target===overlay) close(); });
+    makeZoomable(stage,clone);
     closeBtn=document.createElement('button');
     closeBtn.type='button'; closeBtn.className='diagram-lightbox-close';
     closeBtn.setAttribute('aria-label','Закрыть'); closeBtn.textContent='✕';
     closeBtn.addEventListener('click',close);
     hint=document.createElement('div');
-    hint.className='diagram-lightbox-hint'; hint.textContent='Нажмите на схему, чтобы приблизить — фон не листается';
+    hint.className='diagram-lightbox-hint'; hint.textContent='Сведите/разведите пальцы или дважды тапните, чтобы приблизить';
     document.body.appendChild(overlay);
     document.body.appendChild(closeBtn);
     document.body.appendChild(hint);

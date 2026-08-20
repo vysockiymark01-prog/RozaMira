@@ -1,6 +1,6 @@
 // Service worker «Розы Мира» — полный офлайн-кэш сайта.
 // При обновлении контента поменяйте CACHE_VERSION, чтобы клиенты подтянули новые файлы.
-const CACHE_VERSION = 'rm-v3';
+const CACHE_VERSION = 'rm-v4';
 const CACHE_NAME = `rozamira-${CACHE_VERSION}`;
 
 const PRECACHE_URLS = [
