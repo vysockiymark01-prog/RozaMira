@@ -177,18 +177,43 @@
   }catch(e){}
 })();
 
-/* ===== v6: увеличение схем по тапу (полноэкранный просмотр) ===== */
+/* ===== v6: увеличение схем по тапу (полноэкранный просмотр) =====
+   Фон блокируется от прокрутки/pinch-zoom страницы (иначе на телефоне
+   зум страницы «сдвигает» и показывает то, что находится под окном
+   просмотра). Увеличение — собственное, тапом по схеме, со скроллом
+   внутри самого окна просмотра. */
 (function(){
-  var overlay=null, closeBtn=null, hint=null;
+  var overlay=null, closeBtn=null, hint=null, scrollY=0;
+  function lockPage(){
+    scrollY=window.scrollY||document.documentElement.scrollTop||0;
+    document.documentElement.classList.add('diagram-lightbox-open');
+    document.body.style.position='fixed';
+    document.body.style.top=(-scrollY)+'px';
+    document.body.style.left='0';
+    document.body.style.right='0';
+  }
+  function unlockPage(){
+    document.documentElement.classList.remove('diagram-lightbox-open');
+    document.body.style.position='';
+    document.body.style.top='';
+    document.body.style.left='';
+    document.body.style.right='';
+    window.scrollTo(0,scrollY);
+  }
   function close(){
     if(!overlay) return;
     overlay.remove(); closeBtn.remove(); hint.remove();
     overlay=closeBtn=hint=null;
     document.removeEventListener('keydown',onKey);
+    unlockPage();
   }
   function onKey(e){ if(e.key==='Escape') close(); }
   function open(svg){
     var clone=svg.cloneNode(true);
+    clone.addEventListener('click',function(e){
+      e.stopPropagation();
+      clone.classList.toggle('is-zoomed');
+    });
     overlay=document.createElement('div');
     overlay.className='diagram-lightbox';
     overlay.appendChild(clone);
@@ -198,10 +223,11 @@
     closeBtn.setAttribute('aria-label','Закрыть'); closeBtn.textContent='✕';
     closeBtn.addEventListener('click',close);
     hint=document.createElement('div');
-    hint.className='diagram-lightbox-hint'; hint.textContent='Масштабируйте жестом, чтобы разглядеть детали';
+    hint.className='diagram-lightbox-hint'; hint.textContent='Нажмите на схему, чтобы приблизить — фон не листается';
     document.body.appendChild(overlay);
     document.body.appendChild(closeBtn);
     document.body.appendChild(hint);
+    lockPage();
     document.addEventListener('keydown',onKey);
   }
   document.addEventListener('click',function(e){

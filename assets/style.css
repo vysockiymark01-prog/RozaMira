@@ -177,19 +177,25 @@ a:hover{text-decoration:underline}
  background:var(--card);border:1px solid var(--line);color:var(--muted);
  font-size:.95rem;line-height:1;pointer-events:none;box-shadow:0 2px 6px rgba(0,0,0,.12)}
 
-/* увеличенный просмотр схемы (тап/клик по диаграмме) */
-.diagram-lightbox{position:fixed;inset:0;z-index:200;background:rgba(10,8,6,.86);
- display:flex;align-items:center;justify-content:center;padding:26px 16px;
- overflow:auto;touch-action:pinch-zoom pan-x pan-y}
-.diagram-lightbox svg{width:100%;max-width:900px;height:auto;background:var(--paper);
- border-radius:12px;padding:16px;box-sizing:border-box}
+/* увеличенный просмотр схемы (тап/клик по диаграмме) — свой контейнер со
+   скроллом, БЕЗ нативного pinch-zoom страницы, чтобы фон не «просвечивал»
+   и не листался за картинкой; повторный тап по схеме — приблизить/отдалить */
+html.diagram-lightbox-open,html.diagram-lightbox-open body{overflow:hidden}
+.diagram-lightbox{position:fixed;inset:0;z-index:200;background:rgba(10,8,6,.9);
+ overflow:auto;padding:26px 16px;text-align:center;touch-action:pan-x pan-y;
+ -webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.diagram-lightbox::before{content:"";display:inline-block;height:100%;vertical-align:middle}
+.diagram-lightbox svg{display:inline-block;vertical-align:middle;width:100%;max-width:900px;height:auto;
+ background:var(--paper);border-radius:12px;padding:16px;box-sizing:border-box;cursor:zoom-in}
+.diagram-lightbox svg.is-zoomed{width:1500px;max-width:none;cursor:zoom-out}
 .diagram-lightbox-close{position:fixed;top:14px;right:14px;z-index:201;width:42px;height:42px;
  border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.4);color:#fff;
  font-size:1.3rem;line-height:1;cursor:pointer}
 .diagram-lightbox-close:hover{background:rgba(0,0,0,.6)}
 .diagram-lightbox-hint{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:201;
  font-family:system-ui,Arial,sans-serif;font-size:.78rem;color:rgba(255,255,255,.75);
- background:rgba(0,0,0,.4);padding:5px 12px;border-radius:20px;pointer-events:none}
+ background:rgba(0,0,0,.4);padding:5px 12px;border-radius:20px;pointer-events:none;
+ max-width:88vw;box-sizing:border-box;text-align:center}
 @media(max-width:640px){.diagram-lightbox svg{padding:10px}}
 
 .map-banner{font-family:system-ui,Arial,sans-serif;font-size:.92rem;background:var(--card);
