@@ -1,0 +1,35 @@
+{
+  "name": "Роза Мира — Даниил Андреев",
+  "short_name": "Роза Мира",
+  "description": "Полный текст «Розы Мира» Даниила Андреева: карта миров, словарь терминов, поиск по всем главам. Работает офлайн.",
+  "id": "/RozaMira/",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f6f1e7",
+  "theme_color": "#9c3a52",
+  "lang": "ru",
+  "dir": "ltr",
+  "categories": ["books", "reference", "education"],
+  "icons": [
+    {
+      "src": "assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
