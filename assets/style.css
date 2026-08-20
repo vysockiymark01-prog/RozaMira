@@ -155,13 +155,7 @@ a:hover{text-decoration:underline}
  .hero-actions .btn{width:100%}
  .reader h1{font-size:1.7rem}
  .reader p{text-align:left;hyphens:none}
- /* схемы: подсказка о прокрутке + чуть меньше минимальная ширина */
- .diagram{position:relative}
- .diagram svg{min-width:480px}
- .diagram::after{content:"← листайте схему →";position:absolute;right:10px;bottom:4px;
-  font-family:system-ui,Arial,sans-serif;font-size:.7rem;color:var(--muted);
-  background:var(--paper);padding:1px 6px;border-radius:6px;pointer-events:none;opacity:.85}
- .diagram.route::after{display:none}
+ /* схемы: помещаются в экран целиком, без горизонтальной прокрутки; тап — увеличить */
 }
 /* узкие телефоны */
 @media(max-width:380px){
@@ -172,11 +166,31 @@ a:hover{text-decoration:underline}
 
 /* ===== v2: diagrams, who, search, read marks ===== */
 .diagram{margin:18px 0;padding:14px;background:var(--paper);border:1px solid var(--line);
- border-radius:12px;overflow-x:auto}
-.diagram svg{display:block;width:100%;height:auto;min-width:520px}
-.diagram.route{background:transparent;border:none;padding:0}
+ border-radius:12px;cursor:zoom-in;position:relative}
+.diagram svg{display:block;width:100%;height:auto}
+.diagram.route{background:transparent;border:none;padding:0;cursor:default}
 .diagram a{cursor:pointer}
 .diagram a:hover rect{stroke:var(--accent);stroke-width:2.5}
+/* значок «увеличить» — компактный, не перекрывает содержимое схемы */
+.diagram:not(.route)::after{content:"⤢";position:absolute;top:8px;right:8px;width:26px;height:26px;
+ display:flex;align-items:center;justify-content:center;border-radius:50%;
+ background:var(--card);border:1px solid var(--line);color:var(--muted);
+ font-size:.95rem;line-height:1;pointer-events:none;box-shadow:0 2px 6px rgba(0,0,0,.12)}
+
+/* увеличенный просмотр схемы (тап/клик по диаграмме) */
+.diagram-lightbox{position:fixed;inset:0;z-index:200;background:rgba(10,8,6,.86);
+ display:flex;align-items:center;justify-content:center;padding:26px 16px;
+ overflow:auto;touch-action:pinch-zoom pan-x pan-y}
+.diagram-lightbox svg{width:100%;max-width:900px;height:auto;background:var(--paper);
+ border-radius:12px;padding:16px;box-sizing:border-box}
+.diagram-lightbox-close{position:fixed;top:14px;right:14px;z-index:201;width:42px;height:42px;
+ border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.4);color:#fff;
+ font-size:1.3rem;line-height:1;cursor:pointer}
+.diagram-lightbox-close:hover{background:rgba(0,0,0,.6)}
+.diagram-lightbox-hint{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:201;
+ font-family:system-ui,Arial,sans-serif;font-size:.78rem;color:rgba(255,255,255,.75);
+ background:rgba(0,0,0,.4);padding:5px 12px;border-radius:20px;pointer-events:none}
+@media(max-width:640px){.diagram-lightbox svg{padding:10px}}
 
 .map-banner{font-family:system-ui,Arial,sans-serif;font-size:.92rem;background:var(--card);
  border:1px dashed var(--accent-soft);border-radius:10px;padding:10px 14px;margin-top:14px}

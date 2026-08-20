@@ -176,3 +176,40 @@
     document.body.appendChild(btn);
   }catch(e){}
 })();
+
+/* ===== v6: увеличение схем по тапу (полноэкранный просмотр) ===== */
+(function(){
+  var overlay=null, closeBtn=null, hint=null;
+  function close(){
+    if(!overlay) return;
+    overlay.remove(); closeBtn.remove(); hint.remove();
+    overlay=closeBtn=hint=null;
+    document.removeEventListener('keydown',onKey);
+  }
+  function onKey(e){ if(e.key==='Escape') close(); }
+  function open(svg){
+    var clone=svg.cloneNode(true);
+    overlay=document.createElement('div');
+    overlay.className='diagram-lightbox';
+    overlay.appendChild(clone);
+    overlay.addEventListener('click',function(e){ if(e.target===overlay) close(); });
+    closeBtn=document.createElement('button');
+    closeBtn.type='button'; closeBtn.className='diagram-lightbox-close';
+    closeBtn.setAttribute('aria-label','Закрыть'); closeBtn.textContent='✕';
+    closeBtn.addEventListener('click',close);
+    hint=document.createElement('div');
+    hint.className='diagram-lightbox-hint'; hint.textContent='Масштабируйте жестом, чтобы разглядеть детали';
+    document.body.appendChild(overlay);
+    document.body.appendChild(closeBtn);
+    document.body.appendChild(hint);
+    document.addEventListener('keydown',onKey);
+  }
+  document.addEventListener('click',function(e){
+    var fig=e.target.closest && e.target.closest('.diagram');
+    if(!fig || fig.classList.contains('route')) return;
+    if(e.target.closest('a')) return; // не мешаем кликабельным элементам схемы
+    var svg=fig.querySelector('svg');
+    if(!svg) return;
+    open(svg);
+  });
+})();
