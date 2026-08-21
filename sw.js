@@ -1,6 +1,6 @@
 // Service worker «Розы Мира» — полный офлайн-кэш сайта.
 // При обновлении контента поменяйте CACHE_VERSION, чтобы клиенты подтянули новые файлы.
-const CACHE_VERSION = 'rm-v5';
+const CACHE_VERSION = 'rm-v6';
 const CACHE_NAME = `rozamira-${CACHE_VERSION}`;
 
 const PRECACHE_URLS = [
@@ -37,9 +37,17 @@ const PRECACHE_URLS = [
 ];
 
 self.addEventListener('install', (event) => {
+  // Кладём файлы по одному (Promise.allSettled), а не через addAll —
+  // addAll атомарный: если хотя бы один файл не скачался (обрыв связи,
+  // временная ошибка сети), весь офлайн-кэш оставался бы пустым. Так
+  // офлайн работает даже при частичном сбое первой загрузки.
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(PRECACHE_URLS))
+      .then((cache) => Promise.allSettled(
+        PRECACHE_URLS.map((url) => cache.add(url).catch((err) => {
+          console.warn('[sw] не удалось закэшировать при установке:', url, err);
+        }))
+      ))
       .then(() => self.skipWaiting())
   );
 });
@@ -64,7 +72,10 @@ self.addEventListener('fetch', (event) => {
       return fetch(req).then((res) => {
         if (res && res.status === 200 && res.type === 'basic') {
           const copy = res.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
+          // event.waitUntil продлевает жизнь воркера, пока идёт запись в
+          // кэш — без этого браузер мог убить воркер сразу после ответа,
+          // и файл в офлайн-кэш так и не попадал бы.
+          event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.put(req, copy)));
         }
         return res;
       }).catch(() => {
