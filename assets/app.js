@@ -340,3 +340,28 @@
     open(svg);
   });
 })();
+
+/* ===== v7: уведомление «офлайн-версия готова» =====
+   Service worker после установки сообщает, сколько файлов реально
+   закэшировано — показываем короткий тост, чтобы не приходилось гадать,
+   можно ли уже уходить в офлайн. */
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.addEventListener('message',function(e){
+    if(!e.data || e.data.type!=='rm-offline-ready') return;
+    var shown=false;
+    try{shown=sessionStorage.getItem('rm-offline-toast');}catch(err){}
+    if(shown) return;
+    try{sessionStorage.setItem('rm-offline-toast','1');}catch(err){}
+    var ok=e.data.count>=e.data.total;
+    var toast=document.createElement('div');
+    toast.className='pos-toast';
+    toast.textContent=ok
+      ? 'Офлайн-версия сайта готова — работает без интернета'
+      : 'Офлайн-кэш загружен частично ('+e.data.count+'/'+e.data.total+'). Откройте сайт ещё раз при связи, чтобы докачать остальное.';
+    document.body.appendChild(toast);
+    setTimeout(function(){
+      toast.classList.add('hide');
+      setTimeout(function(){toast.remove();},600);
+    },ok?5000:9000);
+  });
+}

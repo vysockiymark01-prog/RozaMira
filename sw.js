@@ -1,6 +1,6 @@
 // Service worker «Розы Мира» — полный офлайн-кэш сайта.
 // При обновлении контента поменяйте CACHE_VERSION, чтобы клиенты подтянули новые файлы.
-const CACHE_VERSION = 'rm-diag1';
+const CACHE_VERSION = 'rm-v7';
 const CACHE_NAME = `rozamira-${CACHE_VERSION}`;
 
 const PRECACHE_URLS = [
@@ -37,36 +37,42 @@ const PRECACHE_URLS = [
 ];
 
 self.addEventListener('install', (event) => {
-  console.log('[sw][diag] install start', CACHE_NAME);
   // Кладём файлы по одному (Promise.allSettled), а не через addAll —
   // addAll атомарный: если хотя бы один файл не скачался (обрыв связи,
   // временная ошибка сети), весь офлайн-кэш оставался бы пустым. Так
   // офлайн работает даже при частичном сбое первой загрузки.
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('[sw][diag] cache opened');
-        return Promise.allSettled(
-          PRECACHE_URLS.map((url) => cache.add(url).then(
-            () => console.log('[sw][diag] ok', url),
-            (err) => console.warn('[sw][diag] FAIL', url, err && err.message)
-          ))
-        );
-      })
-      .then(async () => {
-        const c = await caches.open(CACHE_NAME);
-        const keys = await c.keys();
-        console.log('[sw][diag] install done, cached count =', keys.length);
-        return self.skipWaiting();
-      })
+      .then((cache) => Promise.allSettled(
+        PRECACHE_URLS.map((url) => cache.add(url).catch((err) => {
+          console.warn('[sw] не удалось закэшировать при установке:', url, err);
+        }))
+      ))
+      .then(() => self.skipWaiting())
   );
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((names) => Promise.all(
-      names.filter((name) => name !== CACHE_NAME).map((name) => caches.delete(name))
-    )).then(() => self.clients.claim())
+    caches.keys()
+      .then((names) => Promise.all(
+        names.filter((name) => name !== CACHE_NAME).map((name) => caches.delete(name))
+      ))
+      .then(() => self.clients.claim())
+      // Сообщаем открытым страницам, сколько файлов реально закэшировано —
+      // app.js показывает тост «офлайн-версия готова», чтобы не гадать.
+      .then(async () => {
+        try {
+          const cache = await caches.open(CACHE_NAME);
+          const keys = await cache.keys();
+          const clientsList = await self.clients.matchAll({ type: 'window' });
+          clientsList.forEach((c) => c.postMessage({
+            type: 'rm-offline-ready',
+            count: keys.length,
+            total: PRECACHE_URLS.length,
+          }));
+        } catch (e) { /* тост необязателен, не мешаем активации */ }
+      })
   );
 });
 
